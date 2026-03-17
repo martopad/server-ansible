@@ -1,0 +1,5 @@
+G_GURU: guru
+G_GURU_REPO: "(https://wiki.gentoo.org/wiki/Project:GURU)"
+
+G_PORTAGE_DIR: /etc/portage
+G_PORTAGE_ACCEPT_KEYWORDS_DIR: "{{ G_PORTAGE_DIR }}/package.accept_keywords"

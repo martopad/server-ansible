@@ -1,0 +1,118 @@
+# bcachefs tools are part of GURU overlay (not in main gentoo repo)
+#
+- name: Install eselect repository tool
+  community.general.portage:
+    getbinpkg: true
+    package: 
+      - app-eselect/eselect-repository
+
+- name: Get enabled portage overlays
+  ansible.builtin.shell: eselect repository list -i
+  register: enabled_overlays
+  ignore_errors: true
+
+- name: print
+  debug:
+    msg: "{{ enabled_overlays }}"
+
+- name: Enable GURU overlay
+  when:
+    -  G_GURU not in enabled_overlays.stdout
+    -  G_GURU_REPO not in enabled_overlays.stdout
+  block:
+    - name: Enable GURU overlay
+      ansible.builtin.shell:
+        cmd: eselect repository enable guru
+    
+    - name: Sync with guru repo
+      ansible.builtin.shell:
+        cmd: emerge --sync guru
+
+- name: Setup additional USE flags
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ G_PORTAGE_ACCEPT_KEYWORDS_DIR }}/{{ item }}"
+    mode: "0755"
+    owner: "root"
+  with_items:
+    - bcachefs
+
+- name: Install bcachefs tools
+  community.general.portage:
+    getbinpkg: true
+    package: 
+      - bcachefs-kmod
+      - sys-fs/bcachefs-tools
+
+- name: Get device flags
+  set_fact:
+    bcachefs_flags: >-
+      {{ storages | selectattr('is_bcache') | map(attribute='flag') | join(' ')  }}
+    bcachefs_dev: >-
+      {{ storages | selectattr('is_bcache') | map(attribute='dev') | join(':')  }}
+
+- name: Check if storages to be bcachefs'ed has a fash storage (nvme)
+  set_fact:
+    has_nvme: >-
+      {{ storages | map(attribute='flag') | select('search', 'nvme') | list | length > 0 }}
+
+- name: Add storage tiering flags
+  when: has_nvme
+  block:
+    - name: Append SSD caching flags
+      set_fact:
+        bcachefs_flags: "{{ bcachefs_flags }} --foreground_target=nvme --promote_target=nvme --metadata_target=nvme"
+
+- name: print flags
+  debug:
+    msg: "{{ bcachefs_flags }}"
+
+- name: print flags
+  debug:
+    msg: "{{ bcachefs_dev }}"
+
+# TODO: using "bcachefs show-super dev1:dev2" does not work. But passing each dev works
+#       so the better solution is to run the command for each dev and all of them
+#       should pass. Else create the aaray
+# FROM: bcachefs show-super dev1:dev2
+# TO: bcachefs show-super dev1 # check if its rc(return code) == 0
+#     bcachefs show-super dev2 # check if its rc(return code) == 0
+#     # logic to collect all outputs
+- name: Check if bcachefs dev already exists
+  ansible.builtin.shell: bcachefs show-super {{ bcachefs_dev }}
+  register: bcachefs_dev_exists
+  ignore_errors: true
+  failed_when: false
+  changed_when: false
+
+- name: Create bcachefs storage pool
+  when: bcachefs_dev_exists.rc != 0
+  block:
+
+    - name: Create bcachefs RAID0 storage pool
+      ansible.builtin.shell:
+        cmd: bcachefs format --force --uuid={{ storage_array_uuid }} {{ bcachefs_flags }}
+
+# TODO: How to recursively create parent dirs if not yet created.
+- name: Create a NFS export directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  with_items:
+    - {{ mount_point }}
+    
+- name: Check if its mounted
+  ansible.builtin.shell: findmnt --mountpoint {{ mount_point }}
+  register: already_mounted
+
+- name: Mount array to mount_point
+  when: len(already_mounted.stdout_lines) < 1
+  block:
+
+    - name: Mount pool
+      ansible.posix.mount:
+        path: {{ mount_point }}
+        fstype: bcachefs
+        src: UUID={{ storage_array_uuid }}
+        state: present
