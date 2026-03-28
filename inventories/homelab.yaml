@@ -6,11 +6,11 @@ homelab:
       storage_array_uuid: 272e200e-eb79-4269-bdf6-83e5d8c89760
       storages:
         - dev: /dev/sda
-          flag: "--label=ssd.ssd1 /dev/sda" # SATA connection (I put an SSD)
+          label: "ssd.ssd1" # SATA connection (I put an SSD)
           is_bcache: True
         - dev: /dev/sdb 
-          flag: "dev/sdb" # Micro-SD (use as root drive)
+          label: "microsd.microsd1" # Micro-SD (use as root drive)
           is_bcache: False
         - dev: /dev/nvme0n1
-          flag: "--label=nvme.nvme1 /dev/nvme0n1" # NVME connection (I put an SSD)
+          label: "nvme.nvme1" # NVME connection (I put an SSD)
           is_bcache: True

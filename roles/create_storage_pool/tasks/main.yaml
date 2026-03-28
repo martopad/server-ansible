@@ -1,5 +1,8 @@
+# Playbook to provision a bcachefs storage pool.
+# Assumptions:
+# 1. There is only one storage pool for 1 device.
+
 # bcachefs tools are part of GURU overlay (not in main gentoo repo)
-#
 - name: Install eselect repository tool
   community.general.portage:
     getbinpkg: true
@@ -10,10 +13,6 @@
   ansible.builtin.shell: eselect repository list -i
   register: enabled_overlays
   ignore_errors: true
-
-- name: print
-  debug:
-    msg: "{{ enabled_overlays }}"
 
 - name: Enable GURU overlay
   when:
@@ -28,7 +27,7 @@
       ansible.builtin.shell:
         cmd: emerge --sync guru
 
-- name: Setup additional USE flags
+- name: Setup bcachefs USE flags
   ansible.builtin.copy:
     src: "{{ item }}"
     dest: "{{ G_PORTAGE_ACCEPT_KEYWORDS_DIR }}/{{ item }}"
@@ -44,75 +43,67 @@
       - bcachefs-kmod
       - sys-fs/bcachefs-tools
 
-- name: Get device flags
+- name: Collect storages that should be part of storage pool
   set_fact:
-    bcachefs_flags: >-
-      {{ storages | selectattr('is_bcache') | map(attribute='flag') | join(' ')  }}
-    bcachefs_dev: >-
-      {{ storages | selectattr('is_bcache') | map(attribute='dev') | join(':')  }}
+    storages_should_be_in_pool: "{{ storages | selectattr('is_bcache') | list | default([]) }}"
 
-- name: Check if storages to be bcachefs'ed has a fash storage (nvme)
-  set_fact:
-    has_nvme: >-
-      {{ storages | map(attribute='flag') | select('search', 'nvme') | list | length > 0 }}
+- name: Check if devices are part of the storage pool
+  ansible.builtin.shell: "bcachefs show-super {{ item.dev }}"
+  loop: "{{ storages_should_be_in_pool }}"
+  register: dev_show_super_results
+  failed_when: False
 
-- name: Add storage tiering flags
-  when: has_nvme
-  block:
-    - name: Append SSD caching flags
-      set_fact:
-        bcachefs_flags: "{{ bcachefs_flags }} --foreground_target=nvme --promote_target=nvme --metadata_target=nvme"
+- name: Check if there is already a storage pool that exists
+  ansible.builtin.set_fact:
+    a_pool_already_exists: "{{ dev_show_super_results.results | selectattr('rc', 'equalto', 0) | list | length > 0 }}"
 
-- name: print flags
-  debug:
-    msg: "{{ bcachefs_flags }}"
-
-- name: print flags
-  debug:
-    msg: "{{ bcachefs_dev }}"
-
-# TODO: using "bcachefs show-super dev1:dev2" does not work. But passing each dev works
-#       so the better solution is to run the command for each dev and all of them
-#       should pass. Else create the aaray
-# FROM: bcachefs show-super dev1:dev2
-# TO: bcachefs show-super dev1 # check if its rc(return code) == 0
-#     bcachefs show-super dev2 # check if its rc(return code) == 0
-#     # logic to collect all outputs
-- name: Check if bcachefs dev already exists
-  ansible.builtin.shell: bcachefs show-super {{ bcachefs_dev }}
-  register: bcachefs_dev_exists
-  ignore_errors: true
-  failed_when: false
-  changed_when: false
+- name: Get storages that are not part of storage pool
+  ansible.builtin.set_fact:
+    storages_not_part_of_a_storage_pool: "{{ dev_show_super_results.results | selectattr('rc', 'ne', 0) | map(attribute='item') | list }}"
 
 - name: Create bcachefs storage pool
-  when: bcachefs_dev_exists.rc != 0
+  when:  not a_pool_already_exists
   block:
+
+    - name: Construct flags
+      set_fact:
+        bcachefs_flags: >-
+          {% set result = [] %}
+          {%- for s in storages_not_part_of_a_storage_pool -%}
+            {{ result.append('--label=' ~ s.label ~ ' ' ~ s.dev) }}
+          {%- endfor -%}
+          {{ result | join(' ')}}
+        bcachefs_dev:
+          "{{ storages_not_part_of_a_storage_pool | map(attribute='dev') | join(':')  }}"
+
+    - name: Check if storages to be bcachefs'ed has a fast storage (nvme)
+      set_fact:
+        has_nvme:
+          "{{ storages_not_part_of_a_storage_pool | map(attribute='label') | select('search', 'nvme') | list | length > 0 }}"
+
+    - name: Add storage tiering flags
+      when: has_nvme
+      block:
+        - name: Append SSD caching flags
+          set_fact:
+            bcachefs_flags: "{{ bcachefs_flags }} --foreground_target=nvme --promote_target=nvme --metadata_target=nvme"
+
+    - name: debug prints
+      debug:
+        msg: "{{ item }}"
+      loop:
+        - "{{ a_pool_already_exists }}"
+        - "{{ storages_not_part_of_a_storage_pool }}"
+        - "{{ bcachefs_flags }}"
+        - "{{ bcachefs_dev }}"
 
     - name: Create bcachefs RAID0 storage pool
       ansible.builtin.shell:
         cmd: bcachefs format --force --uuid={{ storage_array_uuid }} {{ bcachefs_flags }}
 
-# TODO: How to recursively create parent dirs if not yet created.
-- name: Create a NFS export directories
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0755'
-  with_items:
-    - {{ mount_point }}
-    
-- name: Check if its mounted
-  ansible.builtin.shell: findmnt --mountpoint {{ mount_point }}
-  register: already_mounted
-
 - name: Mount array to mount_point
-  when: len(already_mounted.stdout_lines) < 1
-  block:
-
-    - name: Mount pool
-      ansible.posix.mount:
-        path: {{ mount_point }}
-        fstype: bcachefs
-        src: UUID={{ storage_array_uuid }}
-        state: present
+  ansible.posix.mount:
+    path: "{{ mount_point }}"
+    fstype: bcachefs
+    src: UUID={{ storage_array_uuid }}
+    state: mounted
