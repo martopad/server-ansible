@@ -1,6 +1,8 @@
 # Playbook to provision a bcachefs storage pool.
 # Assumptions:
 # 1. There is only one storage pool for 1 device.
+# 2. If a device (that is marked is_bcachefs: True) is not part of the storage pool,
+#    It will be added after the fact.
 
 # bcachefs tools are part of GURU overlay (not in main gentoo repo)
 - name: Install eselect repository tool
@@ -107,3 +109,12 @@
     fstype: bcachefs
     src: UUID={{ storage_array_uuid }}
     state: mounted
+
+- name: Onboard new is_bcache storages when the storage pool already exists
+  when: a_pool_already_exists and storages_not_part_of_a_storage_pool | length > 0
+  block:
+
+    - name: Onboard storages not part of pool
+      ansible.builtin.shell:
+        cmd: bcachefs device add --label={{ item.label }} {{ mount_point }} {{ item.dev }}
+      loop: "{{ storages_not_part_of_a_storage_pool }}"
