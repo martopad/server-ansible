@@ -103,12 +103,10 @@
       ansible.builtin.shell:
         cmd: bcachefs format --force --uuid={{ storage_array_uuid }} {{ bcachefs_flags }}
 
-- name: Mount array to mount_point
-  ansible.posix.mount:
-    path: "{{ mount_point }}"
-    fstype: bcachefs
-    src: UUID={{ storage_array_uuid }}
-    state: mounted
+- name: Mount array to mount point
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: mount_storage_pool.yaml
 
 - name: Onboard new should_be_part_of_pool storages when the storage pool already exists
   when: a_pool_already_exists and storages_not_part_of_a_storage_pool | length > 0

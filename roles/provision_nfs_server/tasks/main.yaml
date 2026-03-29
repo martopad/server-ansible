@@ -5,13 +5,10 @@
     package: 
       - net-fs/nfs-utils
 
-# Copied from create_storage_pool. Dont forget to sync-back when modifying.
 - name: Make sure base mount point is created and mounted
-  ansible.posix.mount:
-    path: "{{ mount_point }}"
-    fstype: bcachefs
-    src: UUID={{ storage_array_uuid }}
-    state: mounted
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: mount_storage_pool.yaml
 
 - name: Create export directories
   file:

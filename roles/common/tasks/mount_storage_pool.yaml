@@ -1,0 +1,7 @@
+
+- name: Mount array to mount_point
+  ansible.posix.mount:
+    path: "{{ mount_point }}"
+    fstype: bcachefs
+    src: UUID={{ storage_array_uuid }}
+    state: mounted
