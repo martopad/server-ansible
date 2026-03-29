@@ -78,17 +78,17 @@
         bcachefs_dev:
           "{{ storages_not_part_of_a_storage_pool | map(attribute='dev') | join(':')  }}"
 
-    - name: Check if storages to be bcachefs'ed has a fast storage (nvme)
+    - name: Check if storages to be bcachefs'ed has fast storages (based on label)
       set_fact:
-        has_nvme:
-          "{{ storages_not_part_of_a_storage_pool | map(attribute='label') | select('search', 'nvme') | list | length > 0 }}"
+        has_ssd:
+          "{{ storages_not_part_of_a_storage_pool | map(attribute='label') | select('search', 'ssd.') | list | length > 0 }}"
 
-    - name: Add storage tiering flags
-      when: has_nvme
+    - name: Append caching optimization
+      when: has_ssd
       block:
-        - name: Append SSD caching flags
+        - name: Append ssd label as caching labels
           set_fact:
-            bcachefs_flags: "{{ bcachefs_flags }} --foreground_target=nvme --promote_target=nvme --metadata_target=nvme"
+            bcachefs_flags: "{{ bcachefs_flags }} --foreground_target=ssd --promote_target=ssd --metadata_target=ssd"
 
     - name: Create bcachefs RAID0 storage pool
       ansible.builtin.shell:
