@@ -1,0 +1,11 @@
+- name: reload nfs
+  command: 'exportfs -rv'
+
+- name: reload nfs services
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: restarted
+  loop:
+    - rpcbind
+    - nfs-server

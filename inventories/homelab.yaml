@@ -2,7 +2,12 @@ homelab:
   hosts:
     un100d03:
       is_bcachefs: True
+      is_nfs: True
       mount_point: /export/storage/pool1
+      nfs_exports: [
+        "{{ mount_point }} *(insecure,no_subtree_check,rw,sync,crossmnt,fsid=0)",
+        "{{ mount_point }}/data *(insecure,no_subtree_check,rw,sync)"
+      ]
       # For Minisforum UN100D devices, it has 3 possible storage devices.
       storages:
         - dev: /dev/sda

@@ -1,0 +1,41 @@
+
+- name: Install nfs tools
+  community.general.portage:
+    getbinpkg: true
+    package: 
+      - net-fs/nfs-utils
+
+# Copied from create_storage_pool. Dont forget to sync-back when modifying.
+- name: Make sure base mount point is created and mounted
+  ansible.posix.mount:
+    path: "{{ mount_point }}"
+    fstype: bcachefs
+    src: UUID={{ storage_array_uuid }}
+    state: mounted
+
+- name: Create export directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items: "{{ nfs_exports | map('split') | map('first') | unique }}"
+
+- name: Copy exports file.
+  template:
+    src: exports.j2
+    dest: /etc/exports
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - reload nfs
+    - reload nfs services
+
+- name: Enable NFS server services
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  with_items:
+    - rpcbind
+    - nfs-server
+

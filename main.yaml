@@ -6,10 +6,22 @@
         name: "{{ inventory_hostname }}"
         groups: [bcachefs_targets]
       when: is_bcachefs
+    - name: Get hosts that will be an nfs server
+      add_host:
+        name: "{{ inventory_hostname }}"
+        groups: [nfs_targets]
+      when: is_nfs
 
-- hosts: [bcachefs_targets]
+# - hosts: [bcachefs_targets]
+#   roles:
+#     - role: create_storage_pool
+#   remote_user: root
+#   vars_files:
+#     - vars/globals.yaml
+
+- hosts: [nfs_targets]
   roles:
-    - role: create_storage_pool
+    - role: provision_nfs_server
   remote_user: root
   vars_files:
     - vars/globals.yaml
