@@ -1,6 +1,7 @@
 homelab:
   hosts:
     un100d03:
+      is_bcachefs: True
       mount_point: /export/storage/pool1
       # For Minisforum UN100D devices, it has 3 possible storage devices.
       storages:

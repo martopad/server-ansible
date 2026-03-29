@@ -1,6 +1,13 @@
-- name: Provision storage pool
-  hosts:
-    - homelab
+- name: Gather hosts
+  hosts: homelab
+  tasks:
+    - name: Get hosts that needs bcachefs storage pool provisioning
+      add_host:
+        name: "{{ inventory_hostname }}"
+        groups: [bcachefs_targets]
+      when: is_bcachefs
+
+- hosts: [bcachefs_targets]
   roles:
     - role: create_storage_pool
   remote_user: root
