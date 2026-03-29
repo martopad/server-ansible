@@ -10,11 +10,26 @@
     name: common
     tasks_from: mount_storage_pool.yaml
 
-- name: Create export directories
+- name: Get virtual and non-virtual root exports
+  set_fact:
+    virtual_root_exports:
+      "{{ nfs_exports | select('search', 'fsid=0') | list | default([]) }}"
+    non_virtual_root_exports:
+      "{{ nfs_exports | reject('search', 'fsid=0') | list | default([]) }}"
+
+- name: Create virtual root export
   file:
     path: "{{ item }}"
     state: directory
-  with_items: "{{ nfs_exports | map('split') | map('first') | unique }}"
+    mode: '0655'
+  with_items: "{{ virtual_root_exports | map('split') | map('first') | unique }}"
+
+- name: Mark non-virtual-root exports modifiable by everyone
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0777'
+  with_items: "{{ non_virtual_root_exports | map('split') | map('first') | unique }}"
 
 - name: Copy exports file.
   template:
