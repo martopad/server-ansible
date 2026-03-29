@@ -90,15 +90,6 @@
           set_fact:
             bcachefs_flags: "{{ bcachefs_flags }} --foreground_target=nvme --promote_target=nvme --metadata_target=nvme"
 
-    - name: debug prints
-      debug:
-        msg: "{{ item }}"
-      loop:
-        - "{{ a_pool_already_exists }}"
-        - "{{ storages_not_part_of_a_storage_pool }}"
-        - "{{ bcachefs_flags }}"
-        - "{{ bcachefs_dev }}"
-
     - name: Create bcachefs RAID0 storage pool
       ansible.builtin.shell:
         cmd: bcachefs format --force --uuid={{ storage_array_uuid }} {{ bcachefs_flags }}
