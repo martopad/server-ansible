@@ -7,11 +7,11 @@ homelab:
       storages:
         - dev: /dev/sda
           label: "ssd.ssd1" # SATA connection (I put an SSD)
-          is_bcache: True
+          should_be_part_of_pool: True
         - dev: /dev/sdb 
           label: "microsd.microsd1" # Micro-SD (use as root drive)
-          is_bcache: False
+          should_be_part_of_pool: False
         - dev: /dev/nvme0n1
           label: "nvme.nvme1" # NVME connection (I put an SSD)
-          is_bcache: True
+          should_be_part_of_pool: True
       storage_array_uuid: 272e200e-eb79-4269-bdf6-83e5d8c89760
