@@ -12,12 +12,12 @@
         groups: [nfs_targets]
       when: is_nfs
 
-# - hosts: [bcachefs_targets]
-#   roles:
-#     - role: create_storage_pool
-#   remote_user: root
-#   vars_files:
-#     - vars/globals.yaml
+- hosts: [bcachefs_targets]
+  roles:
+    - role: create_storage_pool
+  remote_user: root
+  vars_files:
+    - vars/globals.yaml
 
 - hosts: [nfs_targets]
   roles:
