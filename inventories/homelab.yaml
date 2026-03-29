@@ -1,9 +1,8 @@
 homelab:
   hosts:
     un100d03:
-      # For Minisforum UN100D devices, it has 3 possible storage devices.
       mount_point: /export/storage/pool1
-      storage_array_uuid: 272e200e-eb79-4269-bdf6-83e5d8c89760
+      # For Minisforum UN100D devices, it has 3 possible storage devices.
       storages:
         - dev: /dev/sda
           label: "ssd.ssd1" # SATA connection (I put an SSD)
@@ -14,3 +13,4 @@ homelab:
         - dev: /dev/nvme0n1
           label: "nvme.nvme1" # NVME connection (I put an SSD)
           is_bcache: True
+      storage_array_uuid: 272e200e-eb79-4269-bdf6-83e5d8c89760
