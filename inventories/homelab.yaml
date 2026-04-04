@@ -10,13 +10,13 @@ homelab:
       ]
       # For Minisforum UN100D devices, it has 3 possible storage devices.
       storages:
+        - dev: /dev/nvme0n1
+          label: "ssd.nvme1" # NVME connection (I put an SSD)
+          should_be_part_of_pool: True
         - dev: /dev/sda
           label: "ssd.ssd1" # SATA connection (I put an SSD)
           should_be_part_of_pool: True
         - dev: /dev/sdb 
           label: "microsd.microsd1" # Micro-SD (use as root drive)
           should_be_part_of_pool: False
-        - dev: /dev/nvme0n1
-          label: "ssd.nvme1" # NVME connection (I put an SSD)
-          should_be_part_of_pool: True
       storage_array_uuid: 272e200e-eb79-4269-bdf6-83e5d8c89760
