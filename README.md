@@ -2,6 +2,7 @@ Automating the services/configurations I do on my homelab.
 
 Current use-cases:
 1. Provision a bcachefs storage pool.
+2. Provision a nfs server.
 
 How to use:
 ```
