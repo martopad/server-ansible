@@ -94,9 +94,17 @@
       ansible.builtin.shell:
         cmd: bcachefs format --force --uuid={{ storage_array_uuid }} {{ bcachefs_flags }}
 
-- name: Ensure that sata power policy is set to max to prevent sleeping
-  ansible.builtin.copy:
-    src: hd_power_save.rules
+- name: Set scsi power management policy for current boot session.
+  ansible.builtin.template:
+    src: link_power_management_policy.j2
+    dest: /sys/class/scsi_host/host0/link_power_management_policy
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Set scsi power management policy permanently.
+  ansible.builtin.template:
+    src: hd_power_save.rules.j2
     dest: /etc/udev/rules.d/hd_power_save.rules
     owner: root
     group: root

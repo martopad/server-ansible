@@ -8,6 +8,13 @@ homelab:
         "{{ mount_point }} *(insecure,no_subtree_check,rw,sync,crossmnt,fsid=0)",
         "{{ mount_point }}/data *(insecure,no_subtree_check,rw,sync)"
       ]
+      # Minisforum UN100D sata controller does not play well with "med_power_with_dipm".
+      # It has something to do with Intel Rapid Storage Technology(IRST).
+      # https://wiki.archlinux.org/title/Power_management#SATA_Active_Link_Power_Management
+      # https://www.kernel.org/doc/html/latest/scsi/link_power_management_policy.html
+      # Limitation: This will set all scsi hosts' power management policy.
+      #             In the case of UN100D there is only 1 scsi host.
+      scsi_power_policy: "medium_power"
       # For Minisforum UN100D devices, it has 3 possible storage devices.
       storages:
         - dev: /dev/nvme0n1
