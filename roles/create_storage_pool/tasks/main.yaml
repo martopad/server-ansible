@@ -78,18 +78,6 @@
         bcachefs_dev:
           "{{ storages_not_part_of_a_storage_pool | map(attribute='dev') | join(':')  }}"
 
-    - name: Check if storages to be bcachefs'ed has fast storages (based on label)
-      set_fact:
-        has_ssd:
-          "{{ storages_not_part_of_a_storage_pool | map(attribute='label') | select('search', 'ssd.') | list | length > 0 }}"
-
-    - name: Append caching optimization
-      when: has_ssd
-      block:
-        - name: Append ssd label as caching labels
-          set_fact:
-            bcachefs_flags: "{{ bcachefs_flags }} --foreground_target=ssd --promote_target=ssd"
-
     - name: Create bcachefs RAID0 storage pool
       ansible.builtin.shell:
         cmd: bcachefs format --force --uuid={{ storage_array_uuid }} {{ bcachefs_flags }}
@@ -123,3 +111,59 @@
       ansible.builtin.shell:
         cmd: bcachefs device add --label={{ item.label }} {{ mount_point }} {{ item.dev }}
       loop: "{{ storages_not_part_of_a_storage_pool }}"
+
+# Setup storage tiering
+- name: Check if storages to be bcachefs'ed has faster storages (nvme)
+  set_fact:
+    has_nvme:
+      "{{ storages_should_be_in_pool | map(attribute='label') | select('search', storage_label_faster ~ '.') | list | length > 0 }}"
+
+- name: Check if storages to be bcachefs'ed has fast storages (ssd)
+  set_fact:
+    has_ssd:
+      "{{ storages_should_be_in_pool | map(attribute='label') | select('search', storage_label_fast ~ '.') | list | length > 0 }}"
+
+- name: Check if storages to be bcachefs'ed has slow storages (hdd)
+  set_fact:
+    has_hdd:
+      "{{ storages_should_be_in_pool | map(attribute='label') | select('search', storage_label_slow ~ '.') | list | length > 0 }}"
+
+- name: Read metadata_target
+  ansible.builtin.command: cat /sys/fs/bcachefs/{{ storage_array_uuid }}/options/metadata_target
+  register: mt
+
+- name: Set metadata_target
+  when: has_nvme and mt.stdout != storage_label_faster
+  block:
+    - name: Set metadata_target
+      ansible.builtin.shell: "echo {{ storage_label_faster }} > /sys/fs/bcachefs/{{ storage_array_uuid }}/options/metadata_target"
+
+- name: Read foreground_target
+  ansible.builtin.command: cat /sys/fs/bcachefs/{{ storage_array_uuid }}/options/foreground_target
+  register: ft
+
+- name: Set foreground_target
+  when: has_ssd and ft.stdout != storage_label_fast
+  block:
+    - name: Set foreground target
+      ansible.builtin.shell: "echo {{ storage_label_fast }} > /sys/fs/bcachefs/{{ storage_array_uuid }}/options/foreground_target"
+
+- name: Read promote_target
+  ansible.builtin.command: cat /sys/fs/bcachefs/{{ storage_array_uuid }}/options/promote_target
+  register: pt
+
+- name: Set promote_target
+  when: has_ssd and pt.stdout != storage_label_fast
+  block:
+    - name: Set promote target
+      ansible.builtin.shell: "echo {{ storage_label_fast }} > /sys/fs/bcachefs/{{ storage_array_uuid }}/options/promote_target"
+
+- name: Read background_target
+  ansible.builtin.command: cat /sys/fs/bcachefs/{{ storage_array_uuid }}/options/background_target
+  register: bt
+
+- name: Set background_target
+  when: has_hdd and bt.stdout != storage_label_slow
+  block:
+    - name: Set background target
+      ansible.builtin.shell: "echo {{ storage_label_slow }} > /sys/fs/bcachefs/{{ storage_array_uuid }}/options/background_target"

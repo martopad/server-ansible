@@ -15,13 +15,16 @@ homelab:
       # Limitation: This will set all scsi hosts' power management policy.
       #             In the case of UN100D there is only 1 scsi host.
       scsi_power_policy: "medium_power"
+      storage_label_fast: "ssd"
+      storage_label_faster: "{{ storage_label_fast }}.nvme"
+      storage_label_slow: "hdd"
       # For Minisforum UN100D devices, it has 3 possible storage devices.
       storages:
         - dev: /dev/nvme0n1
-          label: "ssd.nvme1" # NVME connection (I put an SSD)
+          label: "{{ storage_label_faster }}.nvme1" # NVME connection (I put an SSD)
           should_be_part_of_pool: True
         - dev: /dev/sda
-          label: "ssd.ssd1" # SATA connection (I put an SSD)
+          label: "{{ storage_label_fast }}.ssd1" # SATA connection (I put an SSD)
           should_be_part_of_pool: True
         - dev: /dev/sdb 
           label: "microsd.microsd1" # Micro-SD (use as root drive)
