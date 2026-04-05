@@ -108,7 +108,7 @@
     dest: /etc/udev/rules.d/hd_power_save.rules
     owner: root
     group: root
-    mode: 0644'
+    mode: '0644'
 
 - name: Mount array to mount point
   ansible.builtin.include_role:
