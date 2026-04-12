@@ -1,0 +1,51 @@
+# Reference: https://wiki.gentoo.org/wiki/Samba/Guide (/etc/samba/smb.conf)
+
+## # Replace MYWORKGROUPNAME with the appropriate workgroup/domain
+workgroup = MYWORKGROUP
+
+## # Of course this has no REAL purpose other than letting
+# everyone knows it is not Windows!
+# %v prints the version of Samba being used.
+server string = Samba Server %v
+
+## # This line enables the log file and limits its size to less than 50kb.
+log file = /var/log/samba/log.%m
+max log size = 50
+
+## # We are going to set some options for our interfaces...
+socket options = TCP_NODELAY SO_RCVBUF=8192 SO_SNDBUF=8192
+
+## # Specifies which IP address range is allowed to access Samba
+# (this is for added security since this configuration does
+# not use passwords):
+hosts allow = 127.0.0.1 192.168.0.0/24
+hosts deny = 0.0.0.0/0
+
+## # Other options for this are USER, DOMAIN, ADS, and SERVER
+# The default is user
+security = user
+
+# previously set to share, but this no longer works
+## # No passwords will be used so a guest account should be enabled:
+guest ok = yes
+
+# Compatiblity with guest access for android clients.
+# Some file manager android apps result in access denied even though guest
+# access from linux clients work. The only android file manager app that works without
+# this is "CX File maanger." Solid File Manager, Mixplorte, and Material Files does
+# not work. The NOK apps have more features and nicer UI and cuztomizability. That's
+# this WA is here.
+map to guest = bad user
+
+{% for export in samba_exports %}
+[{{ export.share_name }}]
+comment = {{ export.comment }}
+path = {{ export.path }}
+writable = {{ export.writable }}
+guest ok = {{ export.guest_ok }}
+public = {{ export.public }}
+create mode = {{ export.create_mode }}
+
+{% endfor %}
+
+

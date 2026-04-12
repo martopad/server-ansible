@@ -3,11 +3,20 @@ homelab:
     un100d03:
       is_bcachefs: True
       is_nfs: True
+      is_samba: True
       mount_point: /export/storage/pool1
       nfs_exports: [
         "{{ mount_point }} *(insecure,no_subtree_check,rw,sync,crossmnt,fsid=0)",
         "{{ mount_point }}/data *(insecure,no_subtree_check,rw,sync)"
       ]
+      samba_exports:
+        - comment: My share
+          create_mode: "0777"
+          guest_ok: "yes"
+          path: "{{ mount_point }}/data"
+          public: "yes"
+          share_name: MyShare
+          writable: "yes"
       # Minisforum UN100D sata controller does not play well with "med_power_with_dipm".
       # It has something to do with Intel Rapid Storage Technology(IRST).
       # https://wiki.archlinux.org/title/Power_management#SATA_Active_Link_Power_Management

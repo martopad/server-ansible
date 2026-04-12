@@ -1,0 +1,7 @@
+- name: reload samba services
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: restarted
+  loop:
+    - smb.service
