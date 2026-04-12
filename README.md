@@ -1,8 +1,8 @@
 Automating the services/configurations I do on my homelab.
 
 Current use-cases:
-1. Provision a bcachefs storage pool.
-2. Provision a nfs server.
+1. Provision bcachefs storage pools.
+2. Provision nfs servers.
 3. Provision samba servers.
 
 How to use:

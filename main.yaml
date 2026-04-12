@@ -6,7 +6,7 @@
         name: "{{ inventory_hostname }}"
         groups: [bcachefs_targets]
       when: is_bcachefs
-    - name: Get hosts that will be an nfs server
+    - name: Get hosts that will be nfs servers
       add_host:
         name: "{{ inventory_hostname }}"
         groups: [nfs_targets]
