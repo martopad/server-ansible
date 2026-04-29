@@ -30,17 +30,6 @@
     mode: '0777'
   with_items: "{{ non_virtual_root_exports | map('split') | map('first') | unique }}"
 
-- name: Copy nfs server configuration
-  ansible.builtin.copy:
-    src: nfs.conf
-    dest: /etc/nfs.conf
-    owner: root
-    group: root
-    mode: '0644'
-  notify:
-    - reload nfs
-    - reload nfs services
-
 - name: Copy exports file.
   ansible.builtin.template:
     src: exports.j2
