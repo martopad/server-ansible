@@ -24,7 +24,6 @@
     - name: Enable GURU overlay
       ansible.builtin.shell:
         cmd: eselect repository enable guru
-    
     - name: Sync with guru repo
       ansible.builtin.shell:
         cmd: emerge --sync guru
@@ -37,12 +36,13 @@
     owner: "root"
   with_items:
     - bcachefs
+  notify:
+    - Update bcachefs tools
 
 - name: Install bcachefs tools
   community.general.portage:
     getbinpkg: true
-    package: 
-      - bcachefs-kmod
+    package:
       - sys-fs/bcachefs-tools
 
 - name: Collect storages that should be part of storage pool

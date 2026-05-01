@@ -1,2 +1,1 @@
-=sys-fs/bcachefs-kmod-1.36.1::guru ~amd64
-=sys-fs/bcachefs-tools-1.36.1 ~amd64
+=sys-fs/bcachefs-tools-1.37.4 ~amd64

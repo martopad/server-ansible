@@ -1,0 +1,6 @@
+- name: Update bcachefs tools
+  community.general.portage:
+    getbinpkg: true
+    state: "latest"
+    package:
+      - sys-fs/bcachefs-tools
